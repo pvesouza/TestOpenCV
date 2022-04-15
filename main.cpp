@@ -3,44 +3,48 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 
+#include "fileHelper.h"
+
 using namespace std;
+using namespace cv;
 
 cv::Mat image, border;
 int top_slider = 10;
 int top_slider_max = 200;
 char TrackbarName[50];
 
-void savePoints(cv::Point *points, int number, char *path) {
-
-
+void savePoints(Point *points, int number, char *path) {
+    FileHelper helper;
+    helper.saveFile(points, number, path);
 }
 
 void on_trackbar_canny(int, void*) {
-  cv::Canny(image, border, top_slider, 3 * top_slider);
-  cv::imshow("canny", border);
+    Canny(image, border, top_slider, 3 * top_slider);
+    imshow("canny", border);
 }
 
-// Histogram Equalization
-cv::Mat plotHistogram(cv::Mat image) {
+// Histogram Equalization Function
+Mat plotHistogram(cv::Mat image) {
     // Equalize histogram
-    cv::Mat hist_equalized_image;
-    cv::equalizeHist(image, hist_equalized_image);
+    Mat hist_equalized_image;
+    equalizeHist(image, hist_equalized_image);
 
     //Define names for windows
-    cv::namedWindow("Histogram", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Histogram", hist_equalized_image);
+    namedWindow("Histogram", cv::WINDOW_AUTOSIZE);
+    imshow("Histogram", hist_equalized_image);
 
     return hist_equalized_image;
 }
 
 int main(int argc, char** argv) {
-    cv::Point p = {0,0};
+
+    Point rectangleCorners[4] = {{10,0}, {20,0}, {10,200}, {20,200}};
 
     // Reads an image from arquive
     image = cv::imread(argv[1],cv::IMREAD_GRAYSCALE);
 
     if (image.empty()) {
-        return 0;
+        return 1;
     }
 
     // Saves the name of the arquive
@@ -58,15 +62,15 @@ int main(int argc, char** argv) {
     name[count++] = 'x';
     name[count++] = 't';
 
-    cv::imshow("image", image);
+    savePoints(rectangleCorners, 4, name);
 
-    //image = plotHistogram(image);
+    cv::imshow("image", image);
 
     sprintf( TrackbarName, "Threshold inferior", top_slider_max);
 
-    cv::namedWindow("canny",1);
+    namedWindow("canny",1);
 
-    cv::createTrackbar( TrackbarName, 
+    createTrackbar( TrackbarName, 
                 "canny",
                 &top_slider,
                 top_slider_max,
@@ -74,13 +78,13 @@ int main(int argc, char** argv) {
 
     on_trackbar_canny(top_slider, &top_slider);
 
-    cv::imwrite("cannyborders.png", border);
+    imwrite("cannyborders.png", border);
 
-    cv::imshow("Canny", border);
+    imshow("Canny", border);
 
     //Storing the histogram
-    cv::Mat histogram;
-    histogram = cv::Mat::zeros(1, 256, CV_8U);
+    Mat histogram;
+    histogram = Mat::zeros(1, 256, CV_8U);
 
     for (int i = 0; i < image.rows; i++) {
         for (int j = 0; j < image.cols; j++) {
@@ -114,8 +118,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    cv::imshow("Binarization", image);
-    cv::waitKey();
+    imshow("Binarization", image);
+    waitKey();
 
     return 0;
 }

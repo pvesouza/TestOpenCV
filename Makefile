@@ -1,6 +1,6 @@
 GCC = g++
 PROJECT = TestOpenCV
-SRC = main.cpp
+SRC = main.cpp fileHelper.cpp
 
 LIBS = `pkg-config --cflags --libs opencv4`
 
