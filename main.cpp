@@ -15,7 +15,21 @@ char TrackbarName[50];
 
 void savePoints(Point *points, int number, char *path) {
     FileHelper helper;
-    helper.saveFile(points, number, path);
+        // Saves the name of the arquive
+    char c = '\0', name[100];
+    uint8_t count = 0;
+
+    while ((c != '.') && (count < 100)) {
+        c = path[count];
+        name[count++] = c;
+    }
+
+    // Fills the name ".txt"
+    name[count++] = 't';
+    name[count++] = 'x';
+    name[count++] = 't';
+    
+    helper.saveFile(points, number, name);
 }
 
 void on_trackbar_canny(int, void*) {
@@ -47,22 +61,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // Saves the name of the arquive
-    char c = '\0', name[100];
-    uint8_t count = 0;
-
-    while ((c != '.') && (count < 100)) {
-        c = argv[1][count];
-        name[count++] = c;
-    }
-
-    // Fills the name ".txt"
-    name[count++] = '.';
-    name[count++] = 't';
-    name[count++] = 'x';
-    name[count++] = 't';
-
-    savePoints(rectangleCorners, 4, name);
+    savePoints(rectangleCorners, 4, argv[1]);
 
     cv::imshow("image", image);
 
