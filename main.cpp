@@ -30,6 +30,9 @@ int DELAY_CAPTION = 1500;
 int DELAY_BLUR = 100;   
 int MAX_KERNEL_LENGTH = 12;
 
+// Path for saved images
+const char *BASE_PATH = "images_out/";
+
 // Saves the rectangle points in a txt file
 void savePoints(Point *points, int number, char *path) {
     FileHelper helper;
@@ -54,11 +57,52 @@ void savePoints(Point *points, int number, char *path) {
     helper.saveFile(points, number, name);
 }
 
+bool saveImage(char *path, const Mat &image) {
+    // Taking the name from path argument
+    char  c = '\0';
+    char name[100];
+    int count = 0;
+    int secondBar = 0;
+
+    //Scanning for the image name
+    do {
+        c = path[count];
+        name[count] = c;
+        if (c == '/') {
+            secondBar++;
+        }
+        count++;
+   
+    } while (c != '\0' && secondBar < 2);
+
+    secondBar = 0;
+
+    // Saves the image name
+    char imageName[20];
+    while (c != '\0') {
+        c = path[count++];
+        imageName[secondBar++] = c;
+   }
+
+    // Test if has saved the image name
+    if (secondBar == 0) {
+        return false;
+    }
+
+    // Insere o caminho image_out/
+    strcat(name, BASE_PATH);
+    strcat(name, imageName);
+
+    cout << "Filename: " << name << endl;
+
+    return imwrite(name, image);
+}
+
 // Trackbar for Canny border algorithm
 void on_trackbar_canny(int, void*) {
     Canny(image, border, top_slider, 3 * top_slider);
     imshow("canny", border);
-    waitKey();
+    //waitKey();
 }
 
 // Histogram Equalization Function
@@ -70,7 +114,7 @@ Mat histogramEqualize(cv::Mat image) {
     //Define names for windows
     namedWindow("Histogram", cv::WINDOW_AUTOSIZE);
     imshow("Histogram", hist_equalized_image);
-    waitKey();
+    //waitKey();
     return hist_equalized_image;
 }
 
@@ -99,8 +143,8 @@ Mat plotHistogram(const Mat &image) {
                 ,Scalar(255, 0, 0), 2, 8, 0);
     }
 
-    imshow("histogram calculated", histImage);
-    waitKey();
+    //imshow("histogram calculated", histImage);
+    //waitKey();
 
     return grayHistogram;
 }
@@ -120,7 +164,7 @@ Mat dilateImage(const Mat &image) {
   dilate( image, dilation_dst, element );
 
   imshow( "Dilation Demo", dilation_dst );
-  waitKey();
+  //waitKey();
 
   return dilation_dst;
 }
@@ -151,7 +195,7 @@ void drawSquares(const Mat &image, const vector<vector<Point> >& squares) {
     }
 
     imshow("Squares", image);
-    waitKey();
+    //waitKey();
 }
 
 // Get rectangle points
@@ -306,7 +350,7 @@ int main(int argc, char** argv) {
     }
 
     imshow("image", image);
-    waitKey();
+    //waitKey();
 
     Mat hist = plotHistogram(image);
 
@@ -367,16 +411,21 @@ int main(int argc, char** argv) {
     }
 
     imshow("Binarization", image);
-    waitKey();
+    //waitKey();
 
     image = dilateImage(image);
-    waitKey();
+    //waitKey();
 
     Mat timg(image);
 
     medianBlur(image, timg, 3);
 
     imshow("MedianBlur", timg);
+
+    if (saveImage(argv[1], timg)) {
+        cout << "Saved Image" << endl;
+    }
+
     waitKey();
 
     return 0;
