@@ -9,8 +9,6 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 
-
-
 #include "fileHelper.h"
 
 #define RET_MIN_AREA 500
@@ -63,8 +61,20 @@ bool saveImage(char *path, const Mat &image) {
     char name[100];
     int count = 0;
     int secondBar = 0;
+    int nBars = 0;
 
-    //Scanning for the image name
+    // Counting the number of / character
+        do {
+        c = path[count++];
+        if (c == '/') {
+            nBars++;
+        }
+   
+    } while (c != '\0' && secondBar < 2);
+
+    count = 0;
+
+    //Scanning for the image path
     do {
         c = path[count];
         name[count] = c;
@@ -73,7 +83,7 @@ bool saveImage(char *path, const Mat &image) {
         }
         count++;
    
-    } while (c != '\0' && secondBar < 2);
+    } while (c != '\0' && secondBar < nBars);
 
     secondBar = 0;
 
