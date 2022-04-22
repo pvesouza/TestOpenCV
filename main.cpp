@@ -11,7 +11,7 @@
 
 #include "fileHelper.h"
 
-#define RET_MIN_AREA 500
+#define REC_MIN_PERIMETER 500
 
 using namespace std;
 using namespace cv;
@@ -55,6 +55,7 @@ void savePoints(Point *points, int number, char *path) {
     helper.saveFile(points, number, name);
 }
 
+// Save an image file with the output format
 bool saveImage(char *path, const Mat &image) {
     // Taking the name from path argument
     char  c = '\0';
@@ -85,6 +86,7 @@ bool saveImage(char *path, const Mat &image) {
    
     } while (c != '\0' && secondBar < nBars);
 
+    name[count] = '\0';
     secondBar = 0;
 
     // Saves the image name
@@ -103,7 +105,7 @@ bool saveImage(char *path, const Mat &image) {
     strcat(name, BASE_PATH);
     strcat(name, imageName);
 
-    cout << "Filename: " << name << endl;
+    //cout << "Filename: " << name << endl;
 
     return imwrite(name, image);
 }
@@ -116,7 +118,7 @@ void on_trackbar_canny(int, void*) {
 }
 
 // Histogram Equalization Function
-Mat histogramEqualize(cv::Mat image) {
+Mat histogramEqualize(Mat image) {
     // Equalize histogram
     Mat hist_equalized_image;
     equalizeHist(image, hist_equalized_image);
@@ -153,9 +155,6 @@ Mat plotHistogram(const Mat &image) {
                 ,Scalar(255, 0, 0), 2, 8, 0);
     }
 
-    //imshow("histogram calculated", histImage);
-    //waitKey();
-
     return grayHistogram;
 }
 
@@ -191,75 +190,131 @@ double angle(Point pt1, Point pt2, Point pt0) {
 } 
 
 // the function draws all the squares in the image
-void drawSquares(const Mat &image, const vector<vector<Point> >& squares) {
+void drawSquare(Mat &image, Point *points) {
 
-    for (size_t i = 0; i < squares.size(); i++) {
-        const Point* p = &squares[i][0];
-
-        int n = (int)squares[i].size();
-        //dont detect the border
-        if (p->x > 3 && p->y > 3) {
-            polylines(image, &p, &n, 1, true, Scalar(0, 255, 0), 3);
+    for (int i = 0; i < 4; i++) {
+        if (i != 3) {
+            line(image, *(points + i), *(points + i + 1), Scalar(128,255,255),3);
+        }else {
+            line(image, *(points + i), *(points), Scalar(128,255,255),3);
         }
-            
     }
 
     imshow("Squares", image);
-    //waitKey();
+}
+
+void _drawContours(Mat image, vector< vector<Point> > contours, vector<Vec4i> hierarchy) {
+    int levels = -1;
+    Mat dest = Mat::zeros(image.rows, image.cols, CV_8UC3);
+
+    drawContours(dest, contours, levels, Scalar(128,255,255), 2, LINE_AA);
+    namedWindow("contours", WINDOW_AUTOSIZE);
+    imshow("contours", dest);
 }
 
 // Get rectangle points
-void getRectanglePoints(const Mat &image, vector<vector<Point>> &contoursSet, int n = 300) {
-
-    contoursSet.clear();
+void getRectanglePoints(Mat &image, Point *pt_out) {
    
     vector<Point> contours;
+    vector<Vec4i> hierarchy_out;
+    vector<Vec4i> hierarchy;                //[Next, Previous, First_Child, Parent]
+    vector<vector<Point>> contoursSet;
+    vector<vector<Point>> contoursOut;
 
-    findContours(image, contoursSet, RETR_LIST, CHAIN_APPROX_SIMPLE);
+    findContours(image, contoursSet, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
-    cout << "Size: " << contoursSet.size() << endl;
+    size_t numberOfContours = contoursSet.size();
+    //cout << "Size: " << numberOfContours << endl;
 
-    // Scans all found borders in order to test them
-    for (size_t border = 0 ; border < contoursSet.size() ; border++) {
-        // Contour approximation taking the perimeter
-        approxPolyDP(Mat(contoursSet[border]), contours, arcLength(Mat(contoursSet[border]), true) * 0.02, true);
+    for (size_t k = 0; k < numberOfContours; k++) { 
+        double perimeter = arcLength(contoursSet[k], true);
 
-        cout << "Rectangle count: " << border << endl;
+        approxPolyDP(Mat(contoursSet[k]), contours, perimeter * 0.02, true);
 
-        // A rectangle should have 4 vertices with angles of approximately 90 degrees
-        // Greate area to avoid noisy
-        // Be convex
-        // Area must be different from zero
-        Mat rectangle = Mat(contours);
-
+        // Testa a quantidade de lados de contoursOut[k]
         if (contours.size() == 4) {
-            double area = fabs(contourArea(rectangle));
+            double perimeterRec = arcLength(contours, true);
 
-            if (area >= RET_MIN_AREA) {
-                
-                if (isContourConvex(rectangle)) {
-                    // Test all angles of the polygon
-                    double maxCosine = 0.0;
+            if (perimeterRec >= REC_MIN_PERIMETER) {
+                contoursOut.push_back(contours);
+                hierarchy_out.push_back(hierarchy[k]);
 
-                    for (int j = 2; j < 5; j++) {
-                        // find the max cosine between edges
-                        double cosine = fabs(angle(contours[j % 4], contours[j - 2], contours[j - 1]));
-                        maxCosine = MAX(maxCosine, cosine);
-                    }
-
-                    // if cosines of all angles are small
-                    // (all angles are ~90 degree) then write quandrange
-                    // vertices to resultant sequence
-                    if (maxCosine < 0.3) {
-                        contoursSet.push_back(contours);
-                    }
-                        
-                }
+                //cout << "PR = " << perimeterRec << endl;
+                //for (int h = 0; h < 4; h++) {
+                    //cout << "Hierarchy: " << hierarchy[k][h] << " Pos: " << k << endl;
+                //}
             }
         }
     }
 
-    drawSquares(image, contoursSet);
+    size_t secondContourSize = contoursOut.size();
+    //cout << "Size 2: " << secondContourSize << endl;
+
+    if (secondContourSize > 0) {
+        _drawContours(image, contoursOut, hierarchy_out);
+        vector<Point> points_vector;
+        Point point[4];
+
+        if (secondContourSize == 1) {
+            // Retrieves the Points and corrects the rectangle
+            points_vector = contoursOut[0];
+
+            point[0] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
+            point[1] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
+            point[2] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
+            point[3] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
+
+            for (int i = 0; i < points_vector.size(); i++) {
+                *(pt_out + i) = point[i];
+                //cout << "(" << point[i].x << "," << point[i].y << ")" << endl;
+            }
+
+        } else {
+
+            double greatest = 0;
+            int indexGreatest = 0;
+
+            for (int i = 0; i < contoursOut.size(); i++) {
+
+                double perimeterRec1 = arcLength(contoursOut[i], true);
+                //cout << "Perimeter: " << perimeterRec1 << endl;
+
+                // Discards the edge of the image
+                if (hierarchy_out[i][0] == -1 && hierarchy_out[i][1] == -1 && hierarchy_out[i][2] != -1 && hierarchy_out[i][3] == -1) {
+
+                }else {
+                    if (greatest < perimeterRec1) {
+                        greatest = perimeterRec1;
+                        indexGreatest = i;
+                    }
+                }
+
+                for (int h = 0; h < 4; h++) {
+                    //cout << "Hierarchy: " << hierarchy_out[i][h] << " Pos: " << i << endl;
+                }
+            }
+
+            points_vector = contoursOut[indexGreatest];
+
+            point[0] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
+            point[1] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
+            point[2] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
+            point[3] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
+
+            for (int i = 0; i < points_vector.size(); i++) {
+                *(pt_out + i) = point[i];
+                //cout << "(" << point[i].x << "," << point[i].y << ")" << endl;
+            }
+        }
+    }else {
+        // Fills with zeros 
+            for (int i = 0; i < 4; i++) {
+                *(pt_out + i) = {0,0};
+            }
+        //cout << "Sem quadriláteros" << endl;
+        return ;
+    }
+           
 }
 
 // Mostra a imagem de destino
@@ -351,7 +406,6 @@ int filters(const Mat &image) {
 
 int main(int argc, char** argv) {
 
-    vector<vector<Point>> rectangleCorners;
     // Reads an image from arquive
     image = cv::imread(argv[1],cv::IMREAD_GRAYSCALE);
 
@@ -360,6 +414,7 @@ int main(int argc, char** argv) {
     }
 
     imshow("image", image);
+
     //waitKey();
 
     Mat hist = plotHistogram(image);
@@ -375,30 +430,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    //cout << "index: " << index << endl;
-    //cout << "maior: " << great << endl;
-
-    //Mat thresh1;
-    //adaptiveThreshold(image, thresh1, (double) index, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 27, 5);
-    //threshold(image, thresh1, (double) index, 255.0, THRESH_BINARY + THRESH_OTSU);
-
-    //imshow("Threshold", thresh1);
-    //waitKey();
-
-    //sprintf( TrackbarName, "Threshold inferior", top_slider_max);
-
-    //namedWindow("canny",1);
-
-    //createTrackbar( TrackbarName, 
-      //          "canny",
-        //        &top_slider,
-          //      top_slider_max,
-            //    on_trackbar_canny);
-
-    //on_trackbar_canny(top_slider, &top_slider);
-
-    //imshow("Canny", border);
-
+    // Limiarization
     if (index == 255) {
         index -= 100;
     }else {
@@ -424,16 +456,21 @@ int main(int argc, char** argv) {
     //waitKey();
 
     image = dilateImage(image);
-    //waitKey();
 
+    // Median Filter to remove noise
     Mat timg(image);
-
     medianBlur(image, timg, 3);
-
     imshow("MedianBlur", timg);
+    
+    // Saving rectangle's points
+    Point pointsToSave[4];
+    getRectanglePoints(timg, pointsToSave);
+    savePoints(pointsToSave, 4, argv[1]);
+
+    drawSquare(timg, pointsToSave);
 
     if (saveImage(argv[1], timg)) {
-        cout << "Saved Image" << endl;
+        //cout << "Saved Image" << endl;
     }
 
     waitKey();
