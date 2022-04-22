@@ -13,6 +13,8 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
     char jsonOut[201];
     char jsonAux[50];
     int pos = 0;
+    jsonAux[0] = '\0';
+    jsonOut[0] = '\0';
 
     // Writes the points in file
     for (int i = 0; i < nPoints; i++) {
@@ -26,10 +28,11 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
         }else {           
             writtenChars = sprintf(jsonAux, "\"c%d\":\"%d\",\"%d\",\n", i + 1, p.x, p.y);
         }
-
+        pos = pos + writtenChars;
+        if (pos > 201){
+            break;
+        }
         strcat(jsonOut, jsonAux);
-
-        cout << jsonOut;
     }
     outputFile << jsonOut << endl;
     // Closes files 

@@ -12,6 +12,7 @@
 #include "fileHelper.h"
 
 #define REC_MIN_PERIMETER 500
+#define ARC_COS_86 0.02
 
 using namespace std;
 using namespace cv;
@@ -51,6 +52,7 @@ void savePoints(Point *points, int number, char *path) {
     name[count++] = 't';
     name[count++] = 'x';
     name[count++] = 't';
+    name[count] = '\0';
 
     helper.saveFile(points, number, name);
 }
@@ -155,6 +157,8 @@ Mat plotHistogram(const Mat &image) {
                 ,Scalar(255, 0, 0), 2, 8, 0);
     }
 
+    imshow("Histogram", histImage);
+
     return grayHistogram;
 }
 
@@ -212,6 +216,50 @@ void _drawContours(Mat image, vector< vector<Point> > contours, vector<Vec4i> hi
     imshow("contours", dest);
 }
 
+void getCoodinates(Point *pt_out, vector<Point> points_vector) {
+
+    int xSmall = 0;
+    int xGreat = 0;
+    int ySmall = 0;
+    int yGreat = 0;
+    Point point[4];
+
+    // Finding the greatest x and y
+    for (int k = 0; k < 4; k++) {
+        if (xGreat < points_vector[k].x) {
+            xGreat = points_vector[k].x;
+        }
+
+        if (yGreat < points_vector[k].y) {
+            yGreat = points_vector[k].y;
+        }
+    }
+
+            
+    xSmall = xGreat;
+    ySmall = yGreat;
+    // Finding the smallest x and y
+    for (int k = 0; k < 4; k++) {
+        if (xSmall > points_vector[k].x) {
+            xSmall = points_vector[k].x;
+        }
+
+        if (ySmall > points_vector[k].y) {
+            ySmall = points_vector[k].y;
+        }
+    }
+
+    point[0] = {xSmall, yGreat};
+    point[1] = {xSmall, ySmall};
+    point[2] = {xGreat, ySmall};
+    point[3] = {xGreat, yGreat};
+
+    for (int k = 0; k < points_vector.size(); k++) {
+        *(pt_out + k) = point[k];
+        cout << "(" << point[k].x << "," << point[k].y << ")" << endl;
+    }
+}
+
 // Get rectangle points
 void getRectanglePoints(Mat &image, Point *pt_out) {
    
@@ -235,14 +283,32 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
         if (contours.size() == 4) {
             double perimeterRec = arcLength(contours, true);
 
+            // Checks minimal perimeter 
             if (perimeterRec >= REC_MIN_PERIMETER) {
-                contoursOut.push_back(contours);
-                hierarchy_out.push_back(hierarchy[k]);
 
-                //cout << "PR = " << perimeterRec << endl;
-                //for (int h = 0; h < 4; h++) {
-                    //cout << "Hierarchy: " << hierarchy[k][h] << " Pos: " << k << endl;
-                //}
+                // Checks the angles between the points
+                double cosineAlpha[4];
+                cosineAlpha[0] = fabs(angle(contours[3], contours[1], contours[0]));
+                cosineAlpha[1] = fabs(angle(contours[0], contours[2], contours[1]));
+                cosineAlpha[2] = fabs(angle(contours[1], contours[3], contours[2]));
+                cosineAlpha[3] = fabs(angle(contours[2], contours[0], contours[3]));
+
+                int result = 0;
+                for (int i = 0; i < 4; i++) {
+                    cout << "Cosine: " << cosineAlpha[i] << endl;
+                    if (cosineAlpha[i] < ARC_COS_86) {
+                        result++;
+                    }
+                }
+
+                if (result >= 2) {
+                    for (int i = 0; i < 4; i++) {
+                        Point p1 = contours[i];
+                        cout << "( " << p1.x << ", " << p1.y << " )" << endl;
+                    }
+                    contoursOut.push_back(contours);
+                    hierarchy_out.push_back(hierarchy[k]);
+                }
             }
         }
     }
@@ -256,55 +322,44 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
         Point point[4];
 
         if (secondContourSize == 1) {
-            // Retrieves the Points and corrects the rectangle
             points_vector = contoursOut[0];
-
-            point[0] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
-            point[1] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
-            point[2] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
-            point[3] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
-
-            for (int i = 0; i < points_vector.size(); i++) {
-                *(pt_out + i) = point[i];
-                //cout << "(" << point[i].x << "," << point[i].y << ")" << endl;
-            }
+            getCoodinates(pt_out, points_vector);
 
         } else {
-
-            double greatest = 0;
             int indexGreatest = 0;
 
-            for (int i = 0; i < contoursOut.size(); i++) {
+            for (int i = 0; i < secondContourSize; i++) {
 
-                double perimeterRec1 = arcLength(contoursOut[i], true);
-                //cout << "Perimeter: " << perimeterRec1 << endl;
 
-                // Discards the edge of the image
-                if (hierarchy_out[i][0] == -1 && hierarchy_out[i][1] == -1 && hierarchy_out[i][2] != -1 && hierarchy_out[i][3] == -1) {
-
-                }else {
-                    if (greatest < perimeterRec1) {
-                        greatest = perimeterRec1;
-                        indexGreatest = i;
-                    }
+                for (int j = 0; j < 4; j++) {
+                        Point p1 = contoursOut[i][j];
+                        cout << "( " << p1.x << ", " << p1.y << " )" << endl;
                 }
 
                 for (int h = 0; h < 4; h++) {
-                    //cout << "Hierarchy: " << hierarchy_out[i][h] << " Pos: " << i << endl;
+                    cout << "Hierarchy: " << hierarchy_out[i][h] << " Pos: " << i << endl;
+                }
+
+                // Discards the edge of the image
+                if (hierarchy_out[i][0] == -1 && hierarchy_out[i][1] == -1 && hierarchy_out[i][2] != -1 && hierarchy_out[i][3] == -1) {
+                    
+                }else {
+                    if (i != 0) {
+                        int dif = hierarchy_out[i - 1][2] - hierarchy_out[i][3];
+                        cout << "DIFF " << dif << " - " << i << endl;
+                        if (dif == 1) {
+                            indexGreatest = i - 1;
+                            break;
+                        }
+                    }
                 }
             }
 
+            cout << "INDEX: " << indexGreatest << endl;
+
             points_vector = contoursOut[indexGreatest];
 
-            point[0] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
-            point[1] = {(points_vector[0].x + points_vector[1].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
-            point[2] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[1].y + points_vector[2].y) / 2};
-            point[3] = {(points_vector[2].x + points_vector[3].x) / 2, (points_vector[0].y + points_vector[3].y) / 2};
-
-            for (int i = 0; i < points_vector.size(); i++) {
-                *(pt_out + i) = point[i];
-                //cout << "(" << point[i].x << "," << point[i].y << ")" << endl;
-            }
+            getCoodinates(pt_out, points_vector);         
         }
     }else {
         // Fills with zeros 
@@ -419,24 +474,54 @@ int main(int argc, char** argv) {
 
     Mat hist = plotHistogram(image);
 
-    float great = 0.0;
+    double great = 0.0;
+    double derivate = 1;
+    bool signal = false;                // Neg = false ; Pos = true
+    bool signal_anterior = false;       // Neg = false ; Pos = true
     int index = 0;
+    int index_aux = 0;
+    int indexVector[256];
 
-    for (int j = 0; j < hist.rows; j++) {
-        //cout << "(" << j << "," << 0 << ") = " << hist.at<float>(j,0) << endl;
-        if (great < hist.at<float>(j,0)) {
-            great = hist.at<float>(j,0);
-            index = j;
+    for (int j = 0; j < hist.rows - 1; j++) {
+
+        derivate = hist.at<float>(j + 1, 0) - hist.at<float>(j, 0);
+        cout << "derivate: " << derivate << " Index: " << j << endl;
+
+        if (fabs(derivate) > 1.0) {
+            if (derivate < 0.0) {
+                signal = false;
+                // Signal has changed
+                if (signal != signal_anterior) {
+                    signal_anterior = signal;
+                    indexVector[index++] = j;
+                }
+            }else {
+                signal = true;
+                // Signal has changed
+                if (signal != signal_anterior) {
+                    signal_anterior = signal;
+                    indexVector[index++] = j;
+                }
+            }
         }
     }
 
-    // Limiarization
-    if (index == 255) {
-        index -= 100;
-    }else {
-        int dist = (255 - index) / 3;
-        index += dist;
+    cout << "index " << index << endl;
+
+    for (int i = 0; i < index; i++) {
+        cout << "Indexes " << indexVector[i] << endl;
     }
+
+    if (index > 1) {
+        index_aux = (indexVector[index - 2] + 255) / 2;
+        if (index_aux >= 250) {
+            index_aux = 245;
+        }
+    }else {
+        index_aux = 253;
+    }
+
+    cout << "index_aux " << index_aux << endl;
 
     // Making Image binary
     for (int i = 0; i < image.rows; i++) {
@@ -444,7 +529,7 @@ int main(int argc, char** argv) {
             uchar value = 0;
             value = image.at<uchar>(i,j);
 
-            if (value  <= index) {
+            if (value  <= index_aux) {
                 image.at<uchar>(i,j) = 0;
             } else {
                 image.at<uchar>(i,j) = 255;
