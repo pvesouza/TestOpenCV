@@ -107,15 +107,13 @@ bool saveImage(char *path, const Mat &image) {
     strcat(name, BASE_PATH);
     strcat(name, imageName);
 
-    //cout << "Filename: " << name << endl;
-
     return imwrite(name, image);
 }
 
 // Trackbar for Canny border algorithm
 void on_trackbar_canny(int, void*) {
     Canny(image, border, top_slider, 3 * top_slider);
-    imshow("canny", border);
+    //imshow("canny", border);
     //waitKey();
 }
 
@@ -127,7 +125,7 @@ Mat histogramEqualize(Mat image) {
 
     //Define names for windows
     namedWindow("Histogram", cv::WINDOW_AUTOSIZE);
-    imshow("Histogram", hist_equalized_image);
+    //imshow("Histogram", hist_equalized_image);
     //waitKey();
     return hist_equalized_image;
 }
@@ -157,7 +155,7 @@ Mat plotHistogram(const Mat &image) {
                 ,Scalar(255, 0, 0), 2, 8, 0);
     }
 
-    imshow("Histogram", histImage);
+    //imshow("Histogram", histImage);
 
     return grayHistogram;
 }
@@ -176,7 +174,7 @@ Mat dilateImage(const Mat &image) {
 
   dilate( image, dilation_dst, element );
 
-  imshow( "Dilation Demo", dilation_dst );
+  //imshow( "Dilation Demo", dilation_dst );
   //waitKey();
 
   return dilation_dst;
@@ -204,7 +202,7 @@ void drawSquare(Mat &image, Point *points) {
         }
     }
 
-    imshow("Squares", image);
+    //imshow("Squares", image);
 }
 
 void _drawContours(Mat image, vector< vector<Point> > contours, vector<Vec4i> hierarchy) {
@@ -213,7 +211,7 @@ void _drawContours(Mat image, vector< vector<Point> > contours, vector<Vec4i> hi
 
     drawContours(dest, contours, levels, Scalar(128,255,255), 2, LINE_AA);
     namedWindow("contours", WINDOW_AUTOSIZE);
-    imshow("contours", dest);
+    //imshow("contours", dest);
 }
 
 void getCoodinates(Point *pt_out, vector<Point> points_vector) {
@@ -256,7 +254,6 @@ void getCoodinates(Point *pt_out, vector<Point> points_vector) {
 
     for (int k = 0; k < points_vector.size(); k++) {
         *(pt_out + k) = point[k];
-        cout << "(" << point[k].x << "," << point[k].y << ")" << endl;
     }
 }
 
@@ -272,7 +269,6 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
     findContours(image, contoursSet, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
     size_t numberOfContours = contoursSet.size();
-    //cout << "Size: " << numberOfContours << endl;
 
     for (size_t k = 0; k < numberOfContours; k++) { 
         double perimeter = arcLength(contoursSet[k], true);
@@ -295,7 +291,7 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
 
                 int result = 0;
                 for (int i = 0; i < 4; i++) {
-                    cout << "Cosine: " << cosineAlpha[i] << endl;
+
                     if (cosineAlpha[i] < ARC_COS_86) {
                         result++;
                     }
@@ -304,7 +300,6 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
                 if (result >= 2) {
                     for (int i = 0; i < 4; i++) {
                         Point p1 = contours[i];
-                        cout << "( " << p1.x << ", " << p1.y << " )" << endl;
                     }
                     contoursOut.push_back(contours);
                     hierarchy_out.push_back(hierarchy[k]);
@@ -314,7 +309,6 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
     }
 
     size_t secondContourSize = contoursOut.size();
-    //cout << "Size 2: " << secondContourSize << endl;
 
     if (secondContourSize > 0) {
         _drawContours(image, contoursOut, hierarchy_out);
@@ -330,23 +324,13 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
 
             for (int i = 0; i < secondContourSize; i++) {
 
-
-                for (int j = 0; j < 4; j++) {
-                        Point p1 = contoursOut[i][j];
-                        cout << "( " << p1.x << ", " << p1.y << " )" << endl;
-                }
-
-                for (int h = 0; h < 4; h++) {
-                    cout << "Hierarchy: " << hierarchy_out[i][h] << " Pos: " << i << endl;
-                }
-
                 // Discards the edge of the image
                 if (hierarchy_out[i][0] == -1 && hierarchy_out[i][1] == -1 && hierarchy_out[i][2] != -1 && hierarchy_out[i][3] == -1) {
                     
                 }else {
                     if (i != 0) {
                         int dif = hierarchy_out[i - 1][2] - hierarchy_out[i][3];
-                        cout << "DIFF " << dif << " - " << i << endl;
+                    
                         if (dif == 1) {
                             indexGreatest = i - 1;
                             break;
@@ -354,8 +338,6 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
                     }
                 }
             }
-
-            cout << "INDEX: " << indexGreatest << endl;
 
             points_vector = contoursOut[indexGreatest];
 
@@ -366,7 +348,7 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
             for (int i = 0; i < 4; i++) {
                 *(pt_out + i) = {0,0};
             }
-        //cout << "Sem quadriláteros" << endl;
+
         return ;
     }
            
@@ -375,7 +357,7 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
 // Mostra a imagem de destino
 int display_dst( int delay, const char *window_name, Mat &image)
 {
-    imshow( window_name, image );
+    //imshow( window_name, image );
     int c = waitKey(delay);
     if( c >= 0 ) { return -1; }
     return 0;
@@ -468,7 +450,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    imshow("image", image);
+    //imshow("image", image);
 
     //waitKey();
 
@@ -485,7 +467,6 @@ int main(int argc, char** argv) {
     for (int j = 0; j < hist.rows - 1; j++) {
 
         derivate = hist.at<float>(j + 1, 0) - hist.at<float>(j, 0);
-        cout << "derivate: " << derivate << " Index: " << j << endl;
 
         if (fabs(derivate) > 1.0) {
             if (derivate < 0.0) {
@@ -506,12 +487,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    cout << "index " << index << endl;
-
-    for (int i = 0; i < index; i++) {
-        cout << "Indexes " << indexVector[i] << endl;
-    }
-
     if (index > 1) {
         index_aux = (indexVector[index - 2] + 255) / 2;
         if (index_aux >= 250) {
@@ -520,8 +495,6 @@ int main(int argc, char** argv) {
     }else {
         index_aux = 253;
     }
-
-    cout << "index_aux " << index_aux << endl;
 
     // Making Image binary
     for (int i = 0; i < image.rows; i++) {
@@ -537,7 +510,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    imshow("Binarization", image);
+    //imshow("Binarization", image);
     //waitKey();
 
     image = dilateImage(image);
@@ -545,7 +518,7 @@ int main(int argc, char** argv) {
     // Median Filter to remove noise
     Mat timg(image);
     medianBlur(image, timg, 3);
-    imshow("MedianBlur", timg);
+    //imshow("MedianBlur", timg);
     
     // Saving rectangle's points
     Point pointsToSave[4];
@@ -555,10 +528,8 @@ int main(int argc, char** argv) {
     drawSquare(timg, pointsToSave);
 
     if (saveImage(argv[1], timg)) {
-        //cout << "Saved Image" << endl;
+  
     }
-
-    waitKey();
 
     return 0;
 }
