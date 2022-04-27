@@ -37,4 +37,5 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
     outputFile << jsonOut << endl;
     // Closes files 
     outputFile.close();
+    cout << jsonOut << endl;
 }

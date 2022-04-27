@@ -73,7 +73,7 @@ bool saveImage(char *path, const Mat &image) {
             nBars++;
         }
    
-    } while (c != '\0' && secondBar < 2);
+    } while (c != '\0');
 
     count = 0;
 
@@ -450,7 +450,7 @@ int main(int argc, char** argv) {
         return EXIT_FAILURE;
     }
 
-    //imshow("image", image);
+    //imshow("Image", image);
 
     //waitKey();
 
@@ -525,11 +525,9 @@ int main(int argc, char** argv) {
     getRectanglePoints(timg, pointsToSave);
     savePoints(pointsToSave, 4, argv[1]);
 
-    drawSquare(timg, pointsToSave);
+    //drawSquare(timg, pointsToSave);
 
-    if (saveImage(argv[1], timg)) {
-  
-    }
+    //if (saveImage(argv[1], timg))
 
     return 0;
 }
