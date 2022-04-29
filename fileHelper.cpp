@@ -22,11 +22,11 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
         int writtenChars = 0;
 
         if (i == 0) {
-            writtenChars = sprintf(jsonAux, "{\n\"c%d\":\"%d\",\"%d\",\n", i + 1, p.x, p.y);
+            writtenChars = sprintf(jsonAux, "{\"c%d\":\"%d,%d\",", i + 1, p.x, p.y);
         } else if (i == 3) {
-            writtenChars = sprintf(jsonAux, "\"c%d\":\"%d\",\"%d\",\n}", i + 1, p.x, p.y);
+            writtenChars = sprintf(jsonAux, "\"c%d\":\"%d,%d\"}", i + 1, p.x, p.y);
         }else {           
-            writtenChars = sprintf(jsonAux, "\"c%d\":\"%d\",\"%d\",\n", i + 1, p.x, p.y);
+            writtenChars = sprintf(jsonAux, "\"c%d\":\"%d,%d\",", i + 1, p.x, p.y);
         }
         pos = pos + writtenChars;
         if (pos > 201){
@@ -37,5 +37,6 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
     outputFile << jsonOut << endl;
     // Closes files 
     outputFile.close();
+    // Put in std out coordinates in Json format
     cout << jsonOut << endl;
 }

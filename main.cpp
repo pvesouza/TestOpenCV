@@ -40,7 +40,7 @@ void savePoints(Point *points, int number, char *path) {
     int secondPoint = 0;
     uint8_t count = 0;
 
-    while ((secondPoint < 2) && (count < 100)) {
+    while ((secondPoint < 3) && (count < 100)) {
         c = path[count];
         if (c == '.') {
             secondPoint++;
@@ -211,7 +211,7 @@ void _drawContours(Mat image, vector< vector<Point> > contours, vector<Vec4i> hi
 
     drawContours(dest, contours, levels, Scalar(128,255,255), 2, LINE_AA);
     namedWindow("contours", WINDOW_AUTOSIZE);
-    //imshow("contours", dest);
+    imshow("contours", dest);
 }
 
 void getCoodinates(Point *pt_out, vector<Point> points_vector) {
@@ -289,7 +289,9 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
                 cosineAlpha[2] = fabs(angle(contours[1], contours[3], contours[2]));
                 cosineAlpha[3] = fabs(angle(contours[2], contours[0], contours[3]));
 
+                // If 2 or more angles are approx 90degrees consider a rectangle
                 int result = 0;
+
                 for (int i = 0; i < 4; i++) {
 
                     if (cosineAlpha[i] < ARC_COS_86) {
@@ -310,6 +312,7 @@ void getRectanglePoints(Mat &image, Point *pt_out) {
 
     size_t secondContourSize = contoursOut.size();
 
+    // Check if we have rectangles
     if (secondContourSize > 0) {
         _drawContours(image, contoursOut, hierarchy_out);
         vector<Point> points_vector;
@@ -525,9 +528,9 @@ int main(int argc, char** argv) {
     getRectanglePoints(timg, pointsToSave);
     savePoints(pointsToSave, 4, argv[1]);
 
-    //drawSquare(timg, pointsToSave);
+    drawSquare(timg, pointsToSave);
 
-    //if (saveImage(argv[1], timg))
+    if (saveImage(argv[1], timg))
 
     return 0;
 }
