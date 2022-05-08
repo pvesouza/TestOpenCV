@@ -12,13 +12,14 @@
 #include "fileHelper.h"
 
 #define REC_MIN_PERIMETER 50
-#define ARC_COS_86 0.03
-#define DEBUG
+#define ARC_COS_86 0.05  
+//#define DEBUG
 
 using namespace std;
 using namespace cv;
 
 cv::Mat image, border;
+int imagePerimeter;
 
 // Variables used for Canny transformation
 int top_slider = 10;
@@ -223,8 +224,11 @@ void _drawContours(Mat image, vector< vector<Point> > contours, vector<Vec4i> hi
 
     drawContours(dest, contours, levels, Scalar(128,255,255), 2, LINE_AA);
     namedWindow("contours", WINDOW_AUTOSIZE);
-    imshow("contours", dest);
-    waitKey();
+    #ifdef DEBUG
+        imshow("contours", dest);
+        waitKey();
+    #endif
+   
 }
 
 void getCoodinates(Point *pt_out, vector<Point> points_vector) 
@@ -298,9 +302,9 @@ void getRectanglePoints(Mat &image, Point *pt_out)
         double perimeter = arcLength(contoursSet[k], true);
   
 
-        approxPolyDP(Mat(contoursSet[k]), contours, perimeter * 0.02, true);
+        approxPolyDP(Mat(contoursSet[k]), contours, perimeter * 0.03, true);
 
-        // Testa a quantidade de lados de contoursOut[k]
+        // Testa a quantidade de lados de contoursOut[k] tem que ser 4
         if (contours.size() == 4) 
         {
             double perimeterRec = arcLength(contours, true);
@@ -310,8 +314,8 @@ void getRectanglePoints(Mat &image, Point *pt_out)
             cout << "Perimeter: " << perimeterRec << endl;
         #endif
 
-            // Checks minimal perimeter 
-            if (perimeterRec >= REC_MIN_PERIMETER) 
+            // Checks minimal perimeter and less than image perimeter
+            if (perimeterRec >= REC_MIN_PERIMETER && perimeterRec <= 0.95 * imagePerimeter) 
             {
                 // Checks the angles between the points
                 double cosineAlpha[4];
@@ -342,7 +346,7 @@ void getRectanglePoints(Mat &image, Point *pt_out)
                         for (int i = 0; i < contours.size(); i++) 
                         {
                             Point p1 = contours[i];
-                            cout << "( " << p1.x << "," << p1.y << ")" << endl;
+                            cout << "(" << p1.x << "," << p1.y << ")" << endl;
                         }
                     #endif
 
@@ -367,7 +371,6 @@ void getRectanglePoints(Mat &image, Point *pt_out)
         if (secondContourSize == 1) {
             points_vector = contoursOut[0];
             getCoodinates(pt_out, points_vector);
-
         } 
         else 
         {
@@ -376,6 +379,7 @@ void getRectanglePoints(Mat &image, Point *pt_out)
             for (int i = 0; i < secondContourSize; i++) 
             {
                 // Discards the edge of the image
+                //[Next, Previous, First_Child, Parent]
                 if (hierarchy_out[i][0] == -1 && hierarchy_out[i][1] == -1 && hierarchy_out[i][2] != -1 && hierarchy_out[i][3] == -1) 
                 {
                     
@@ -499,6 +503,11 @@ int main(int argc, char** argv) {
 
     image = imread(argv[1], IMREAD_GRAYSCALE);
     Mat colorImage = imread(argv[1], IMREAD_COLOR);
+    imagePerimeter = 2 * (image.cols + image.rows);
+
+    #ifdef DEBUG
+        cout << "ImagePerimeter = " << imagePerimeter << endl;
+    #endif
 
     // Reads an image from arquive
     if (image.empty()) {
@@ -579,8 +588,11 @@ int main(int argc, char** argv) {
         }
     }
 
-    imshow("Binarization", image);
-    waitKey();
+    #ifdef DEBUG
+        imshow("Binarization", image);
+        waitKey();
+    #endif
+
 
     // Dilate image in order to accentuate the contours
     Mat dilated_image = dilateImage(image);
@@ -588,6 +600,7 @@ int main(int argc, char** argv) {
     // Median Filter to remove noise
     Mat timg(dilated_image);
     medianBlur(dilated_image, timg, 3);
+
     #ifdef DEBUG
         imshow("MedianBlur", timg);
         waitKey();
@@ -598,9 +611,11 @@ int main(int argc, char** argv) {
     getRectanglePoints(timg, pointsToSave);
     savePoints(pointsToSave, 4, argv[1]);
 
-    drawSquare(colorImage, pointsToSave);
+    #ifdef DEBUG
+        drawSquare(colorImage, pointsToSave);
+        if (saveImage(argv[1], timg))
+    #endif
 
-    if (saveImage(argv[1], timg))
 
     return 0;
 }
