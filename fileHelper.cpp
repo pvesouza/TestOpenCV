@@ -27,7 +27,7 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
 
     if (isEmpty)
     {
-        cout << "[]" << endl;
+        cout << "{}" << endl;
         return;
     }
 

@@ -14,7 +14,7 @@
 
 #define REC_MIN_PERIMETER 50
 #define ARC_COS_86 0.05  
-//#define DEBUG
+#define DEBUG
 
 #ifdef _MSC_VER
     #define _CRT_SECURE_NO_WARNINGS
@@ -299,7 +299,7 @@ void getRectanglePoints(Mat& image, Point* pt_out) {
         double perimeter = arcLength(contoursSet[k], true);
         // Debug    
         #ifdef DEBUG
-            cout << "Perimeter: " << perimeterRec << endl;
+            cout << "Perimeter: " << perimeter << endl;
         #endif
 
         approxPolyDP(Mat(contoursSet[k]), contours, perimeter * 0.03, true);
@@ -494,7 +494,6 @@ int main(int argc, char** argv) {
 
     if (image.empty()) {
         cout << "Erro ao ler imagem" << endl;
-        return EXIT_FAILURE;
     }
 
 
