@@ -1,5 +1,5 @@
 GCC = g++
-PROJECT = TestOpenCV
+PROJECT = RecCalc
 SRC = main.cpp fileHelper.cpp
 
 LIBS = `pkg-config --cflags --libs opencv4`

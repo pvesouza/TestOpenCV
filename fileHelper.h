@@ -1,6 +1,12 @@
 #ifndef FILEHELPER_H
 #define FILEHELPER_H
 
+#ifdef __unix__         
+
+#elif defined(_WIN32) || defined(WIN32) 
+   #define OS_Windows
+#endif
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include <string>

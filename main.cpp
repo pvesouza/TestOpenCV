@@ -501,6 +501,11 @@ int filters(const Mat &image) {
 
 int main(int argc, char** argv) {
 
+    //Disabling the logs
+    #ifdef OS_Windows
+        cv::utils::logging::setLogLevel(utils::logging::LOG_LEVEL_SILENT);
+    #endif
+
     image = imread(argv[1], IMREAD_GRAYSCALE);
     Mat colorImage = imread(argv[1], IMREAD_COLOR);
     imagePerimeter = 2 * (image.cols + image.rows);

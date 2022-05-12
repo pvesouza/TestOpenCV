@@ -57,7 +57,13 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
             return;
         }
         cout << jsonAux << endl;
-        strcat_s(jsonOut, jsonAux);
+        
+        #ifdef OS_Windows
+            strcat_s(jsonOut, jsonAux);
+        #else
+            strcat(jsonOut, jsonAux);
+        #endif
+       
     }
     //outputFile << jsonOut << endl;
     // Closes files 
