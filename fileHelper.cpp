@@ -9,14 +9,6 @@ FileHelper::~FileHelper() {
 }
 
 void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
-    //ofstream outputFile;                                           // Creates an output file
-    //cout << "Passou Aqui" << endl;
-    //outputFile.open(path, ios::out);
-    //cout << "Failure to open file" << endl;
-    //if (!outputFile.is_open()) {
-        //cout << "Failure to open file" << endl;
-        //return;
-    //}
     bool isEmpty = true;
     for (int i = 0; i < nPoints; i++)
     {
@@ -65,7 +57,4 @@ void FileHelper::saveFile(Point *points, int nPoints, const char *path) {
         #endif
        
     }
-    //outputFile << jsonOut << endl;
-    // Closes files 
-    //outputFile.close();
 }

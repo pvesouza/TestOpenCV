@@ -170,9 +170,10 @@ Mat plotHistogram(const Mat& image) {
             , Scalar(255, 0, 0), 2, 8, 0);
     }
 
-    //imshow("histogram calculated", histImage);
-    //waitKey();
-
+    #ifdef DEBUG
+        imshow("histogram calculated", histImage);
+        waitKey();
+    #endif
     return grayHistogram;
 }
 
@@ -487,15 +488,21 @@ int main(int argc, char** argv) {
 
     vector<vector<Point>> rectangleCorners;
     // Reads an image from arquive
-    //image = cv::imread("C:\\imagens\\biel.png", cv::IMREAD_GRAYSCALE);
     image = cv::imread(argv[1], cv::IMREAD_GRAYSCALE);
-    Mat colorImage = imread(argv[1], IMREAD_COLOR);
+    Mat colorImage = imread(argv[1], cv::IMREAD_COLOR);
     imagePerimeter = 2 * (image.cols + image.rows);
+
+
 
     if (image.empty()) {
         cout << "Erro ao ler imagem" << endl;
+        return 0;
     }
 
+    #ifdef DEBUG
+        imshow("Original", colorImage);
+        waitKey();
+    #endif
 
     Mat hist = plotHistogram(image);
 
