@@ -13,7 +13,7 @@
 
 #define REC_MIN_PERIMETER 50
 #define ARC_COS_86 0.05  
-//#define DEBUG
+//#define DEBUG1
 
 using namespace std;
 using namespace cv;
@@ -37,26 +37,8 @@ const char *BASE_PATH = "images_out/";
 // Saves the rectangle points in a txt file
 void savePoints(Point *points, int number, char *path) {
     FileHelper helper;
-        // Saves the name of the arquive
-    char c = '\0', name[100];
-    int secondPoint = 0;
-    uint8_t count = 0;
 
-    while ((secondPoint < 3) && (count < 100)) {
-        c = path[count];
-        if (c == '.') {
-            secondPoint++;
-        }
-        name[count++] = c;
-    }
-
-    // Fills the name ".txt"
-    name[count++] = 't';
-    name[count++] = 'x';
-    name[count++] = 't';
-    name[count] = '\0';
-
-    helper.saveFile(points, number, name);
+    helper.saveFile(points, number, path);
 }
 
 // Save an image file with the output format
@@ -112,12 +94,6 @@ bool saveImage(char *path, const Mat &image) {
     return imwrite(name, image);
 }
 
-// Trackbar for Canny border algorithm
-void on_trackbar_canny(int, void*) {
-    Canny(image, border, top_slider, 3 * top_slider);
-    //imshow("canny", border);
-    //waitKey();
-}
 
 // Histogram Equalization Function
 Mat histogramEqualize(Mat image) {
@@ -167,10 +143,10 @@ Mat plotHistogram(const Mat &image) {
 }
 
 // Dilation used for make bright regions larger
-Mat dilateImage(const Mat &image) {
+Mat dilateImage(const Mat &image, int dilationSize = 2) {
 
     int dilation_type = MORPH_RECT;
-    int dilation_size = 2;
+    int dilation_size = dilationSize;
     Mat dilation_dst;
 
     Mat element = getStructuringElement( 
@@ -211,7 +187,7 @@ void drawSquare(Mat &image, Point *points)
         }
     }
 
-    #ifdef DEBUG
+    #ifdef DEBUG1
         imshow("Squares", image);
         waitKey();
     #endif
@@ -280,7 +256,7 @@ void getCoodinates(Point *pt_out, vector<Point> points_vector)
 }
 
 // Get rectangle points
-void getRectanglePoints(Mat &image, Point *pt_out) 
+bool getRectanglePoints(Mat &image, Point *pt_out) 
 {
    
     vector<Point> contours;
@@ -288,6 +264,7 @@ void getRectanglePoints(Mat &image, Point *pt_out)
     vector<Vec4i> hierarchy;                //[Next, Previous, First_Child, Parent]
     vector<vector<Point>> contoursSet;
     vector<vector<Point>> contoursOut;
+    bool result = false;
 
     findContours(image, contoursSet, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
 
@@ -364,13 +341,18 @@ void getRectanglePoints(Mat &image, Point *pt_out)
 
     // Check if we have rectangles              
     if (secondContourSize > 0) {
-        _drawContours(image, contoursOut, hierarchy_out);
+
+        #ifdef DEBUG
+            _drawContours(image, contoursOut, hierarchy_out);
+        #endif
+
         vector<Point> points_vector;
         Point point[4];
 
         if (secondContourSize == 1) {
             points_vector = contoursOut[0];
             getCoodinates(pt_out, points_vector);
+            result = true;
         } 
         else 
         {
@@ -396,7 +378,8 @@ void getRectanglePoints(Mat &image, Point *pt_out)
             }
 
             points_vector = contoursOut[indexGreatest];
-            getCoodinates(pt_out, points_vector);         
+            getCoodinates(pt_out, points_vector); 
+            result = true;       
         }
     } 
     else
@@ -406,93 +389,8 @@ void getRectanglePoints(Mat &image, Point *pt_out)
         {
             *(pt_out + i) = {0,0};
         }
-
-        return ;
     }
-           
-}
-
-// Mostra a imagem de destino
-int display_dst( int delay, const char *window_name, Mat &image)
-{
-    //imshow( window_name, image );
-    int c = waitKey(delay);
-    if( c >= 0 ) { return -1; }
-    return 0;
-}
-
-int display_caption( const char* caption, Mat &dst, const Mat &image)
-{
-    dst = Mat::zeros( image.size(), image.type() );
-    putText( dst, caption,
-             Point( image.cols/4, image.rows/2),
-             FONT_HERSHEY_COMPLEX, 1, Scalar(255, 255, 255) );
-
-    return display_dst(DELAY_CAPTION, " ", dst);
-}
-
-int filters(const Mat &image) {
-
-    Mat destiny = image.clone();
-
-    if( display_caption( "Homogeneous Blur", destiny, image) != 0 )
-    {
-        return 0;
-    }
-
-    for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
-    {
-        blur( image, destiny, Size( i, i ), Point(-1,-1) );
-        if( display_dst( DELAY_BLUR, "Homogeneous Blur", destiny) != 0 )
-        {
-            return 0;
-        }
-    }
-
-    if( display_caption( "Gaussian Blur" , destiny, image) != 0 )
-    {
-        return 0;
-    }
-
-    for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
-    {
-        GaussianBlur( image, destiny, Size( i, i ), 0, 0 );
-        if( display_dst( DELAY_BLUR, "Gaussian Blur" , destiny) != 0 )
-        {
-            return 0;
-        }
-    }
-
-    if( display_caption( "Median Blur" , destiny, image) != 0 )
-    {
-        return 0;
-    }
-
-    for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
-    {
-        medianBlur ( image, destiny, i );
-        if( display_dst( DELAY_BLUR, "Median Blur" , destiny) != 0 )
-        {
-            return 0;
-        }
-    }
-
-    if( display_caption( "Bilateral Blur" , destiny, image) != 0 )
-    {
-        return 0;
-    }
-
-    for ( int i = 1; i < MAX_KERNEL_LENGTH; i = i + 2 )
-    {
-        bilateralFilter ( image, destiny, i, i*2, i/2 );
-        if( display_dst( DELAY_BLUR, "Bilateral Blur" , destiny) != 0 )
-        {
-            return 0;
-        }
-    }
-
-    //display_caption( "Done!" );
-    return 0;
+    return result;          
 }
 
 //***********************************************************************
@@ -613,14 +511,256 @@ int main(int argc, char** argv) {
 
     // Saving rectangle's points
     Point pointsToSave[4];
-    getRectanglePoints(timg, pointsToSave);
-    savePoints(pointsToSave, 4, argv[1]);
+    bool haveRectangle = getRectanglePoints(timg, pointsToSave);
+    // Has a white rectangle ?
+    if (haveRectangle)
+    {
+        savePoints(pointsToSave, 4, argv[1]);
+        #ifdef DEBUG1
+            drawSquare(colorImage, pointsToSave);
+        #endif
 
-    #ifdef DEBUG
-        drawSquare(colorImage, pointsToSave);
-        if (saveImage(argv[1], timg))
-    #endif
+    }else {
+        // At this point we analize the green component to see if we have a green rectangle 
+        #ifdef DEBUG 
+            imshow("Green Image", colorImage);
+            waitKey();
+        #endif
 
+        Mat channels[3];
+        split(colorImage, channels);
+
+        #ifdef DEBUG
+            imshow("0", channels[0]);
+            imshow("1", channels[1]);
+            imshow("2", channels[2]);
+            waitKey();
+        #endif
+
+        Mat resultimg = channels[2] - channels[0];
+
+        #ifdef DEBUG
+            imshow("Sub", resultimg);
+            waitKey();
+        #endif
+
+        // Binarization
+
+        for (int i = 0; i < resultimg.rows; ++i)
+        {
+            for (int j = 0; j < resultimg.cols; ++j)
+            {
+                uchar pixel = resultimg.at<uchar>(i,j);
+
+                if (pixel > 5) 
+                {
+                    pixel = 255;
+                }
+                resultimg.at<uchar>(i,j) = pixel;
+            }
+        }
+
+        #ifdef DEBUG
+            imshow("Result", resultimg);
+            waitKey();
+        #endif
+
+        // Median Filter to remove noise
+        medianBlur(resultimg, timg, 25);
+
+        #ifdef DEBUG
+            imshow("Median", timg);
+            waitKey();
+        #endif
+            
+
+        //Finding the contours in an image
+        vector<Point> contours;
+        vector<vector<Point>> contourSet;
+        vector<vector<Point>> contourSetOut;
+        vector<Vec4i> hierarchy;                //[Next, Previous, First_Child, Parent]
+        vector<Vec4i> hierarchy_out;                //[Next, Previous, First_Child, Parent]
+
+        findContours(timg, contourSet, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
+        #ifdef DEBUG
+            _drawContours(timg, contourSet, hierarchy);
+        #endif
+        size_t numberOfContours = contourSet.size();
+
+        // The marjority of cases we only have 1 rectangle
+        if (numberOfContours == 1) 
+        {
+            // Poligonal approximation
+            double perimeter = arcLength(contourSet[0], true);
+            approxPolyDP(Mat(contourSet[0]), contours, perimeter * 0.02, true);
+            
+            // Getting the minimal rectangle that enclosures the courve
+            Point2f vtx[4];
+            RotatedRect recBox = minAreaRect(contours);
+            recBox.points(vtx);
+            contours.clear();
+
+            // Converting the points
+            for (int i = 0; i < 4; i++) 
+            {
+                
+                #ifdef DEBUG 
+                    cout << "Points: " << vtx[i] << " - ";
+                #endif
+
+                Point p = vtx[i];
+                pointsToSave[i] = p;
+
+                #ifdef DEBUG 
+                    cout << "Points: " << p << " - ";
+                #endif
+            }
+
+            savePoints(pointsToSave, 4, argv[1]);
+
+            #ifdef DEBUG1
+                drawSquare(colorImage, pointsToSave);
+            #endif
+            return 0;
+        }
+
+        for (size_t k = 0; k < numberOfContours; k++) 
+        {
+            // Poligonal approximation
+            double perimeter = arcLength(contourSet[k], true);
+            approxPolyDP(Mat(contourSet[k]), contours, perimeter * 0.02, true);
+            
+            // Getting the minimal rectangle that enclosures the courve
+            Point2f vtx[4];
+            RotatedRect recBox = minAreaRect(contours);
+            recBox.points(vtx);
+            contours.clear();
+
+            // Converting the points
+            for (int i = 0; i < 4; i++) 
+            {
+                
+                #ifdef DEBUG 
+                    cout << "Points: " << vtx[i] << " - ";
+                #endif
+                Point p = vtx[i];
+
+                #ifdef DEBUG 
+                    cout << "Points: " << p << " - ";
+                #endif
+
+                contours.push_back(p);
+            }
+
+            #ifdef DEBUG 
+                cout << endl;
+            #endif
+
+            // Checks minimal perimeter and less than image perimeter
+            if (perimeter >= REC_MIN_PERIMETER && perimeter <= 0.95 * imagePerimeter) 
+            {
+                // Checks the angles between the points
+                double cosineAlpha[4];
+                cosineAlpha[0] = fabs(angle(contours[3], contours[1], contours[0]));
+                cosineAlpha[1] = fabs(angle(contours[0], contours[2], contours[1]));
+                cosineAlpha[2] = fabs(angle(contours[1], contours[3], contours[2]));
+                cosineAlpha[3] = fabs(angle(contours[2], contours[0], contours[3]));
+
+                // If 2 or more angles are approx 90degrees consider a rectangle
+                int result = 0;
+
+                for (int i = 0; i < 4; i++) 
+                {
+                    #ifdef DEBUG
+                        cout << "Cosine: " << cosineAlpha[i] << endl;
+                    #endif
+
+                    if (cosineAlpha[i] < ARC_COS_86) 
+                    {
+                        result++;
+                    }
+                }
+
+                if (result >= 2) 
+                {
+                    #ifdef DEBUG
+
+                        for (int i = 0; i < contours.size(); i++) 
+                        {
+                            Point p1 = contours[i];
+                            cout << "(" << p1.x << "," << p1.y << ")" << endl;
+                        }
+                    #endif
+
+                    contourSetOut.push_back(contours);
+                    hierarchy_out.push_back(hierarchy[k]);
+
+                    #ifdef DEBUG
+                        cout << hierarchy[k] << endl;
+                    #endif
+                }
+            }
+        }
+
+        size_t secondContourSize = contourSetOut.size();
+
+        // Check if we have rectangles              
+        if (secondContourSize > 0) 
+        {
+
+            #ifdef DEBUG
+                _drawContours(image, contourSetOut, hierarchy_out);
+            #endif
+
+            vector<Point> points_vector;
+            Point point[4];
+
+            if (secondContourSize == 1) 
+            {
+                points_vector = contourSetOut[0];
+                getCoodinates(pointsToSave, points_vector);
+            } 
+            else {
+                int indexGreatest = 0;
+
+                for (int i = 0; i < secondContourSize; i++) 
+                {
+                    // Discards the edge of the image
+                    //[Next, Previous, First_Child, Parent]
+                    if (hierarchy_out[i][0] == -1 && hierarchy_out[i][1] == -1 && hierarchy_out[i][2] != -1 && hierarchy_out[i][3] == -1) 
+                    {
+                    
+                    } else {
+                        if (i != 0) 
+                        {
+                            int dif = hierarchy_out[i - 1][2] - hierarchy_out[i][3];
+                    
+                            if (dif == 1) 
+                            {
+                                indexGreatest = i - 1;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                points_vector = contourSetOut[indexGreatest];
+                getCoodinates(pointsToSave, points_vector);     
+            }
+        } else {
+            // Fills with zeros 
+            for (int i = 0; i < 4; i++) 
+            {
+                *(pointsToSave + i) = {0,0};
+            }
+        }
+
+        savePoints(pointsToSave, 4, argv[1]);
+
+        #ifdef DEBUG1
+            drawSquare(colorImage, pointsToSave);
+        #endif
+    }
 
     return 0;
 }

@@ -10,7 +10,7 @@
             "cStandard": "${default}",
             "cppStandard": "${default}",
             "intelliSenseMode": "linux-gcc-x64",
-            "compilerArgs": [],
+            "compilerArgs": ["./imagesgreen/1.jpg"],
             "configurationProvider": "ms-vscode.makefile-tools"
         }
     ],
